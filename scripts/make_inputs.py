@@ -58,10 +58,11 @@ if __name__ == '__main__':
 
     data_pkl = rm_SAA(data_pkl, 3600)
 
-    num_pixels_to_make = 1000
-    np.random.seed(42)
-    pix_nums = np.random.randint(low=0,
-                                 high=1014*1014,
-                                 size=num_pixels_to_make)
+    # num_pixels_to_make = 1000
+    # np.random.seed(42)
+    # pix_nums = np.random.randint(low=0,
+    #                              high=1014*1014,
+    #                              size=num_pixels_to_make)
+    pix_nums = range(1014*1014)
     for pix_num in pix_nums:
         make_input_fl(pix_num, data_pkl, exp_type, year)
