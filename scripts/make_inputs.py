@@ -47,7 +47,7 @@ if __name__ == '__main__':
     year = sys.argv[2]
     file_location = sys.argv[3]
     if file_location == 'local':
-        data_path = '/Users/mcurrie/GitRepos/wfc3_bad_pix/data/%s/' % exp_type
+        data_path = '../data/%s/' % exp_type
     else:
         data_path = '/Volumes/My_Book/wfc3_bad_pix/data/%s/' % exp_type
     data_path = data_path + '/data_%s_%s.p' % (exp_type, year)
