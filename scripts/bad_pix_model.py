@@ -2,7 +2,6 @@ import pystan
 import pickle
 import numpy as np
 import sys
-import glob
 
 model = """
 
@@ -38,33 +37,39 @@ model {
 """
 
 
-def initfn():
-    return dict(inlier_mean=np.median(input_fl["pix_series"]),
-                outlier_frac=np.random.random(),
-                sigma_outlier=np.clip(np.std(input_fl["pix_series"]),
-                                      0.05, 1e10),
-                outlier_mean=np.mean(input_fl["pix_series"]))
 
 sm = pystan.StanModel(model_code=model)
 
-exp_type = sys.argv[1]
-year = sys.argv[2]
+data_num = sys.argv[1]
 
-input_fls = glob.glob('../data/%s/input*%s*' % (exp_type, year))
+data_path = '../data/input_2017_%s.p' % data_num
 
-for input_fl in input_fls:
-    pix_num = input_fl.split('_')[-1].strip('.p')
+data_pkl = pickle.load(open(data_path, 'rb'))
 
-    input_fl = pickle.load(open(input_fl, 'rb'))
+N_im, N_pix = data_pkl['data'].shape
 
-    save_path = '../data/%s/output_%s_%s.p' % (exp_type, year, pix_num)
-    save_fit_path = '../data/%s/output_%s_%s.txt' % (exp_type, year, pix_num)
+save_path = '../data/output_2017_%s.txt' % data_num
 
-    fit = sm.sampling(data=input_fl, iter=2000, chains=4, init=initfn)
+with open(save_path, 'a') as f:
+    for n in range(len(N_pix)):
+        fit = sm.sampling(data={'pix_series': data_pkl['data'][: n],
+                                'err_ext': data_pkl['err'][:, n],
+                                'N_im': N_im},
+                          iter=2000, chains=4,
+                          init={'inlier_mean':
+                                np.median(data_pkl['data'][: n]),
+                                'outlier_frac': np.random.random(),
+                                'sigma_outlier':
+                                np.clip(np.std(data_pkl['data'][: n]),
+                                        0.05, 1e10),
+                                'outlier_mean':
+                                np.mean(data_pkl['data'][: n])})
 
-    la = fit.extract(permuted=True)
-    pickle.dump(la, open(save_path, 'w'))
-    str_fit = str(fit)
-    with open(save_fit_path, 'wb') as f:
-        f.write(str_fit)
-        f.flush()
+        la = fit.extract(permuted=True)
+        for key in la.keys():
+            la[key] = np.median(la[key])
+            f.write('data %i pix %i ' % (data_num, n))
+            f.write('%s\t%0.5fi\n' % (str(key), la[key]))
+            str_fit = str(fit)
+            f.write(str_fit)
+            f.flush()
