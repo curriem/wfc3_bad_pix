@@ -48,28 +48,49 @@ data_pkl = pickle.load(open(data_path, 'rb'))
 
 N_im, N_pix = data_pkl['data'].shape
 
-save_path = '../data/output_2017_%s.txt' % data_num
+save_path = 'output_2017_%s.txt' % data_num
 
-with open(save_path, 'a') as f:
-    for n in range(len(N_pix)):
-        fit = sm.sampling(data={'pix_series': data_pkl['data'][: n],
-                                'err_ext': data_pkl['err'][:, n],
-                                'N_im': N_im},
-                          iter=2000, chains=4,
-                          init={'inlier_mean':
-                                np.median(data_pkl['data'][: n]),
-                                'outlier_frac': np.random.random(),
-                                'sigma_outlier':
-                                np.clip(np.std(data_pkl['data'][: n]),
-                                        0.05, 1e10),
-                                'outlier_mean':
-                                np.mean(data_pkl['data'][: n])})
+with open(save_path, 'w') as f:
+    for n in range(N_pix):
+        bad_fit = 1
+        while bad_fit:
+            fit = sm.sampling(data={'pix_series': data_pkl['data'][:,n],
+                                    'err_ext': data_pkl['err'][:, n],
+                                    'N_im': N_im},
+                              iter=2000, chains=4, refresh=1000,
+                              init = lambda : {'inlier_mean':
+                                               np.median(data_pkl['data'][:,n]),
+                                               'outlier_frac': np.random.random(),
+                                               'sigma_outlier':
+                                               np.clip(np.std(data_pkl['data'][:,n]),
+                                                       0.05, 1e10),
+                                               'outlier_mean':
+                                               np.mean(data_pkl['data'][:,n])})
+
+
+
+            str_fit = str(fit)
+            parsed = str_fit.split('\n')
+
+            for line in parsed:
+                subparsed = line.split(None)
+                if len(subparsed) > 2:
+                    if subparsed[0] == "outlier_frac":
+                        conv_r = float(subparsed[-1])
+                        print "Found ", subparsed, conv_r
+                        if conv_r < 1.05:
+                            bad_fit = 0
+                        else:
+                            bad_fit = 1
+                        print "bad_fit ", bad_fit
+        
 
         la = fit.extract(permuted=True)
+
         for key in la.keys():
-            la[key] = np.median(la[key])
-            f.write('data %i pix %i ' % (data_num, n))
-            f.write('%s\t%0.5fi\n' % (str(key), la[key]))
-            str_fit = str(fit)
-            f.write(str_fit)
-            f.flush()
+            f.write('\ndata  %s  pix  %i  x  %i  y  %i  ' % (data_num, n, data_pkl['x'][n], data_pkl['y'][n]))
+            f.write('%s  %.5f  %.5f\n' % (str(key), np.median(la[key]), np.std(la[key], ddof=1)))
+
+        f.write(str_fit)
+        f.flush()
+        
