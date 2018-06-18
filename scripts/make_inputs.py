@@ -24,21 +24,22 @@ def rm_SAA(data_pkl, time_to_rm):
     return data_pkl
 
 
-def make_input_fl(pix_num, data_pkl, exp_type, year):
+def make_input_fl(input_num, data_pkl, exp_type, year):
     fl = dict()
     data = data_pkl['data']
     err = data_pkl['err']
     N_im, len_side, len_side = data.shape
-    data = data.reshape(N_im, len_side*len_side)
-    err = err.reshape(N_im, len_side*len_side)
-    fl['pix_series'] = data[:, pix_num]
+    # data = data.reshape(N_im, len_side*len_side)
+    # err = err.reshape(N_im, len_side*len_side)
+    fl['pix_series'] = data[:, pix_num_start:pix_num_stop]
     fl['err_ext'] = err[:, pix_num]
     fl['pix_series'] = fl['pix_series'][~np.isnan(fl['pix_series'])]
     fl['err_ext'] = fl['err_ext'][~np.isnan(fl['pix_series'])]
     fl['N_im'] = len(fl['pix_series'])
-    pickle.dump(fl, open('../data/%s/input_%s_%i.p' % (exp_type,
+    pickle.dump(fl, open('../data/%s/input_%s_%i_%i.p' % (exp_type,
                                                        year,
-                                                       pix_num), 'wb'))
+                                                       pix_num_start,
+                                                       pix_num_stop), 'wb'))
 
 
 if __name__ == '__main__':
@@ -54,7 +55,7 @@ if __name__ == '__main__':
 
     data_pkl = pickle.load(open(data_path, 'rb'))
 
-    data_pkl = preprocess_data(data_pkl)
+    # data_pkl = preprocess_data(data_pkl)
 
     data_pkl = rm_SAA(data_pkl, 3600)
 
@@ -64,5 +65,6 @@ if __name__ == '__main__':
     #                              high=1014*1014,
     #                              size=num_pixels_to_make)
     pix_nums = range(1014*1014)
+    pix_nums = np.linspace(0, 1014*1014, 12)
     for pix_num in pix_nums:
-        make_input_fl(pix_num, data_pkl, exp_type, year)
+        make_input_fl(pix_num_start, pix_num_stop, data_pkl, exp_type, year)
